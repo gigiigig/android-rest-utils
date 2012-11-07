@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RestUtils</string>
+    
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_main">MainActivity</string>
+
+    <string name="data_download">Data Download</string>
+    <string name="data_download_error">Data Download Error</string>
+    <string name="data_request_error">Data Download Error</string>
+    
+    
+</resources>
