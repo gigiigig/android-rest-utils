@@ -12,6 +12,10 @@ import android.os.Handler
 import java.text.SimpleDateFormat
 import scala.actors.Actor
 import scala.actors.Actor._
+import android.preference.PreferenceManager
+import android.content.Context
+import java.io.ObjectInputStream
+import java.io.FileNotFoundException
 
 abstract class WebConnector(activity: Activity,
                             private var successPostDownload: PostDownload = null,
@@ -141,7 +145,10 @@ abstract class WebConnector(activity: Activity,
 
 object WebConnector {
 
+  val TAG = classOf[WebConnector].toString()
   val BASE_URL = "http://services.begenius.it/hotel/xml/"
+
+  val tempCache = scala.collection.mutable.Map[String, String]()
 
   def formatDate(date: Date) = {
     new SimpleDateFormat("yyyy-MM-dd").format(date)
@@ -169,6 +176,107 @@ object WebConnector {
     val response: Option[String] = client.get(url)
     response
   }
+
+  /**
+   * Get cached json from permanent cahche (disk)
+   *
+   * @param name
+   * @param activity
+   * @return
+   */
+  def getFromPermanentCache(name: String, activity: Context): String = {
+    val preferences = PreferenceManager
+      .getDefaultSharedPreferences(activity)
+    preferences.getString(name, null)
+  }
+
+  /**
+   * Put cached json from temp cahche (static variable)
+   *
+   * @param name
+   * @param value
+   * @param activity
+   */
+  def putToPermanentCache(name: String, value: String,
+                          activity: Context) = {
+
+    val preferences = PreferenceManager
+      .getDefaultSharedPreferences(activity)
+
+    val edit = preferences.edit()
+    edit.putString(name, value);
+    edit.commit();
+
+  }
+
+  /**
+   * Get cached json from temp cahche (static variable)
+   *
+   * @param name
+   * @param activity
+   * @return
+   */
+  def getFromTempCache(name: String): String = {
+    tempCache(name);
+  }
+
+  /**
+   * Put cached json from permanent cahche (disk)
+   *
+   * @param name
+   * @param value
+   */
+  def putToTempCache(name: String, value: String) = {
+    tempCache += (name -> value)
+  }
+
+  /**
+   * Delete from both permanent and temporary cache Json with given Url
+   *
+   * @param name
+   *            URL of Json to delet from cache
+   *
+   */
+  def deleteFromChache(name: String, activity: Activity) = {
+
+    // delete from permanent chache
+    val preferences = PreferenceManager
+      .getDefaultSharedPreferences(activity)
+
+    val edit = preferences.edit()
+    edit.remove(name);
+
+    edit.commit();
+
+    // delete from temp cache
+    tempCache.remove(name);
+
+  }
+  
+  /**
+     * Get generic Object from file stored in private app storage space
+     * 
+     * @param fileName
+     * @return
+     */
+   def getObjectFromDisk(fileName:String ,activity: Context ) : Object = {
+
+       var cache : Object = null
+        Log.d(TAG, "getObjectFromDisk openfile[" + fileName + "]")
+
+        try {
+            val file = activity.openFileInput(fileName)
+            cache = new ObjectInputStream(file).readObject()
+        } catch {
+          case e:FileNotFoundException => Log.d(TAG, "getObjectFromDisk [" + e + "]")
+          case e => Log.e(TAG, "getObjectFromDisk [" + e + "]")
+        } 
+
+        return cache;
+
+    }
+  
+  
 
 }
 
