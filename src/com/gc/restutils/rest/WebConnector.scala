@@ -16,7 +16,7 @@ import java.io.FileNotFoundException
 import java.io.ObjectOutputStream
 import com.gc.restutils.R
 
-abstract class WebConnector(activity: Activity,
+abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
                             private var downloadErrorPostDownload: PostDownload = null,
                             private var requestErrorPostDownload: PostDownload = null) extends WebConnectoreBase {
@@ -70,7 +70,7 @@ abstract class WebConnector(activity: Activity,
 
       }
     }
-  }
+  } 
 
   def executeRequest(content: String, operation: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload) = {
 
