@@ -70,7 +70,7 @@ abstract class WebConnector(activity: Context,
 
       }
     }
-  } 
+  }
 
   def executeRequest(content: String, operation: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload) = {
 
