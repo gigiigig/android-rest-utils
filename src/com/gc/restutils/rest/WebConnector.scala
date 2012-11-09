@@ -1,21 +1,20 @@
-package com.gc.restutils
-
-import android.os.AsyncTask
+package com.gc.restutils.rest
 import scala.xml._
 import scala.io._
-import scala.io.Source
 import android.util._
 import android.app.Activity
+import android.app.Activity._
 import java.util.Date
 import android.app.ProgressDialog
 import android.os.Handler
 import java.text.SimpleDateFormat
-import scala.actors.Actor
 import scala.actors.Actor._
 import android.preference.PreferenceManager
 import android.content.Context
 import java.io.ObjectInputStream
 import java.io.FileNotFoundException
+import java.io.ObjectOutputStream
+import com.gc.restutils.R
 
 abstract class WebConnector(activity: Activity,
                             private var successPostDownload: PostDownload = null,
@@ -252,36 +251,63 @@ object WebConnector {
     tempCache.remove(name);
 
   }
-  
+
   /**
-     * Get generic Object from file stored in private app storage space
-     * 
-     * @param fileName
-     * @return
-     */
-   def getObjectFromDisk(fileName:String ,activity: Context ) : Object = {
+   * Get generic Object from file stored in private app storage space
+   *
+   * @param fileName
+   * @return
+   */
+  def getObjectFromDisk(fileName: String, activity: Context): Object = {
 
-       var cache : Object = null
-        Log.d(TAG, "getObjectFromDisk openfile[" + fileName + "]")
+    var cache: Object = null
+    Log.d(TAG, "getObjectFromDisk openfile[" + fileName + "]")
 
-        try {
-            val file = activity.openFileInput(fileName)
-            cache = new ObjectInputStream(file).readObject()
-        } catch {
-          case e:FileNotFoundException => Log.d(TAG, "getObjectFromDisk [" + e + "]")
-          case e => Log.e(TAG, "getObjectFromDisk [" + e + "]")
-        } 
-
-        return cache;
-
+    try {
+      val file = activity.openFileInput(fileName)
+      cache = new ObjectInputStream(file).readObject()
+    } catch {
+      case e: FileNotFoundException => Log.d(TAG, "getObjectFromDisk [" + e + "]")
+      case e                        => Log.e(TAG, "getObjectFromDisk [" + e + "]")
     }
-  
-  
+
+    return cache;
+
+  }
+
+  /**
+   * Put object to disk
+   *
+   * @param object
+   * @param FILE_NAME
+   * @param activity
+   */
+  def writeObjectToDisk(theObject: Object, FILE_NAME: String,
+                        activity: Context) = {
+
+    try {
+      val file = activity.openFileOutput(FILE_NAME, Context.MODE_PRIVATE)
+      new ObjectOutputStream(file).writeObject(theObject)
+
+    } catch {
+      case e: FileNotFoundException => Log.w(TAG, "getObjectFromDisk [" + e + "]")
+      case e                        => Log.e(TAG, "getObjectFromDisk [" + e + "]")
+    }
+
+  }
+
+  /**
+   * Delete object from disk
+   *
+   * @param FILE_NAME
+   * @param activity
+   */
+  def deleteObjectFromDisk(FILE_NAME: String, activity: Context) = {
+    activity.deleteFile(FILE_NAME);
+  }
 
 }
 
 trait PostDownload {
-
   def execute(obj: Object)
-
 }

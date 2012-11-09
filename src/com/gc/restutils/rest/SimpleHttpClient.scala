@@ -1,4 +1,4 @@
-package com.gc.restutils
+package com.gc.restutils.rest
 
 import java.net.URI
 import java.net.URLEncoder

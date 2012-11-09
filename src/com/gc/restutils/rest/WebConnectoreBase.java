@@ -1,4 +1,4 @@
-package com.gc.restutils;
+package com.gc.restutils.rest;
 
 import scala.Option;
 import android.os.AsyncTask;
