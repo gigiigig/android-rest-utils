@@ -21,6 +21,10 @@ abstract class WebConnector(activity: Context,
                             private var downloadErrorPostDownload: PostDownload = null,
                             private var requestErrorPostDownload: PostDownload = null) extends WebConnectoreBase {
 
+  def this(activity: Context) = {
+    this(activity, null, null, null)
+  }
+
   import WebConnector._
 
   val BASE_URL = "http://services.begenius.it/hotel/xml/"
@@ -28,7 +32,6 @@ abstract class WebConnector(activity: Context,
   val TAG = classOf[WebConnector].getName
   val TEST = false
 
-  var operation: String = null
   var response: String = null
 
   case class Show
@@ -72,20 +75,26 @@ abstract class WebConnector(activity: Context,
     }
   }
 
-  def executeRequest(content: String, operation: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload) = {
+  def executeRequest(url: String): Unit = {
+    executeRequest(url, null)
+  }
+  def executeRequest(url: String, onDownloadSuccess: PostDownload): Unit = {
+    executeRequest(url, onDownloadSuccess, null)
+  }
+  def executeRequest(url: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload): Unit = {
 
-    this.operation = operation
-    this.successPostDownload = onDownloadSuccess
-    this.downloadErrorPostDownload = onDownloadError
+    if (onDownloadSuccess != null)
+      this.successPostDownload = onDownloadSuccess
+    if (onDownloadError != null)
+      this.downloadErrorPostDownload = onDownloadError
 
-    execute(content)
+    execute(url)
 
   }
 
-  override def doInBackground(args: String): Option[String] = {
+  override def doInBackground(url: String): Option[String] = {
 
-    var url = args(0)
-    return doPost(args, operation)
+    return doGet(url)
 
   }
 
@@ -107,7 +116,12 @@ abstract class WebConnector(activity: Context,
 
   }
 
-  def onDownloadSuccess(content: String)
+  def onDownloadSuccess(content: String) = {
+
+    dialogManager ! Dismiss()
+    successPostDownload.execute(content)
+
+  }
 
   def onDownloadError = {
 
