@@ -8,6 +8,8 @@ import android.util.Log
 import android.view.KeyEvent
 import android.text.Spanned
 import android.text.Html
+import scala.collection.JavaConverters._
+import scala.collection.JavaConversions._
 
 trait BaseActivity extends Activity {
 
@@ -39,17 +41,17 @@ trait BaseActivity extends Activity {
    * @param has
    *            map of extras
    */
-  def toActivity(className: Class[_ <: Activity], extras: Map[String, Serializable]): Boolean = {
+  def toActivity(className: Class[_ <: Activity], extras: java.util.Map[String, java.io.Serializable]): Boolean = {
     toActivity(className, false, extras)
   }
 
-  def toActivity(className: Class[_ <: Activity], toFinish: Boolean, extras: Map[String, Serializable]): Boolean = {
+  def toActivity(className: Class[_ <: Activity], toFinish: Boolean, extras: java.util.Map[String, java.io.Serializable]): Boolean = {
     val intent = new Intent(this, className);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
     if (extras != null) {
-      val keySet = extras.keySet
-      for (string <- keySet) {
+      val keySet = extras.keySet()
+      for (string <- keySet.toSet[String]) {
         intent.putExtra(string, extras.get(string));
       }
     }

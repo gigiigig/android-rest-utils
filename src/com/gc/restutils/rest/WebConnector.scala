@@ -8,6 +8,7 @@ import java.util.Date
 import android.app.ProgressDialog
 import android.os.Handler
 import java.text.SimpleDateFormat
+import scala.actors.Actor
 import scala.actors.Actor._
 import android.preference.PreferenceManager
 import android.content.Context
@@ -15,6 +16,8 @@ import java.io.ObjectInputStream
 import java.io.FileNotFoundException
 import java.io.ObjectOutputStream
 import com.gc.restutils.R
+import android.os.Looper
+import android.app.Activity
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
@@ -38,31 +41,34 @@ abstract class WebConnector(activity: Context,
   case class Dismiss
   case class Message(text: String)
 
+  val messageDialog = new ProgressDialog(activity)
+  messageDialog.setIndeterminate(true)
+  messageDialog.setMessage(activity.getString(R.string.data_download))
+
   val dialogManager = actor {
 
     var counter = 0
-    val messageDialog = new ProgressDialog(activity)
-    messageDialog.setIndeterminate(true)
-    messageDialog.setMessage(activity.getString(R.string.data_download))
+    val activityCast = activity.asInstanceOf[Activity]
 
-    loop {
-      react {
-
+    while (true) {
+      receive {
         case Show() =>
           counter match {
             case 0 =>
-              messageDialog.show()
+              activityCast.runOnUiThread(new Runnable() {
+                def run() {
+                  messageDialog.show()
+                }
+              })
               counter = counter + 1
             case _ =>
-              counter = counter - 1
+              counter = counter + 1
           }
 
         case Dismiss() =>
-
           counter match {
             case 1 =>
               messageDialog.dismiss()
-              counter = counter - 1
             case x =>
               if (x > 1)
                 counter = counter - 1
@@ -72,6 +78,7 @@ abstract class WebConnector(activity: Context,
         case Message(text) => messageDialog setMessage text
 
       }
+
     }
   }
 

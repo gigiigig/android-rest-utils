@@ -28,9 +28,9 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   import WebConnector._
 
-  var image: Bitmap = null
-  val imagePostDownload: ImagePostDownload = new ImagePostDownload(view)
-  val onlySave = view != null
+  protected var image: Bitmap = null
+  protected val imagePostDownload: ImagePostDownload = new ImagePostDownload(view)
+  protected val onlySave = view != null
 
   override def onDownloadSuccess(content: String): Unit = {
     imagePostDownload.execute(image)
@@ -41,7 +41,10 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
     if (image != null) Some("") else None
   }
 
-  def loadImageFromWeb(url: String, newPostDowload: ImagePostDownload = this.imagePostDownload) = {
+  def loadImageFromWeb(url: String): Unit = {
+    loadImageFromWeb(url, this.imagePostDownload)
+  }
+  def loadImageFromWeb(url: String, newPostDowload: ImagePostDownload): Unit = {
 
     //if (newPostDowload != null) this.imagePostDownload = newPostDowload
     Log.d(TAG, "loadImageFromWeb serach image with url [" + url + "]")
@@ -78,7 +81,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   }
 
-  def downloadImage(url: String): Bitmap = {
+  protected def downloadImage(url: String): Bitmap = {
 
     try {
       Log.d(TAG, "downloadImage ciao url[" + url + "]");
@@ -136,7 +139,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   }
 
-  def inputStreamToByteArray(instream: InputStream): ByteArrayOutputStream = {
+  protected def inputStreamToByteArray(instream: InputStream): ByteArrayOutputStream = {
     val bos = new ByteArrayOutputStream()
     var next = instream.read()
     while (next > -1) {
@@ -147,7 +150,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
     bos
   }
 
-  def saveCache(url: String, image: Array[Byte], context: Context) = {
+  protected def saveCache(url: String, image: Array[Byte], context: Context) = {
     putImageToPermanentCache(url, image, context)
   }
 
@@ -160,7 +163,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
     }
   }
 
-  def getImageFromPermanentCache(url: String, context: Context): Array[Byte] = {
+  protected def getImageFromPermanentCache(url: String, context: Context): Array[Byte] = {
 
     Log.d(TAG, "getImageFromPermanentCache url[" + url + "]");
 
@@ -173,7 +176,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   }
 
-  def deleteImageFromCache(url: String, context: Context) = {
+  protected def deleteImageFromCache(url: String, context: Context) = {
     deleteObjectFromDisk(url.replace("/", "_"), context)
   }
 
