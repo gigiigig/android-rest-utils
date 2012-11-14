@@ -28,22 +28,51 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   import WebConnector._
 
+  override val TAG = classOf[BitmapWebLoader].toString()
+
   protected var image: Bitmap = null
   protected val imagePostDownload: ImagePostDownload = new ImagePostDownload(view)
-  protected val onlySave = view != null
+  protected val onlySave = view == null
+
+  override def onPreExecute() = {
+    //not call super to avoid to show dialog
+    //called only for onlySave , used for batch download
+    if (onlySave) {
+      super.onPreExecute()
+      WebConnector ! Message("download images")
+    }
+    imagePostDownload.prepareView()
+  }
 
   override def onDownloadSuccess(content: String): Unit = {
     imagePostDownload.execute(image)
   }
 
+  override def onPostExecute(content: Option[String]) = {
+    //dismiss is called evrytime , but probably is not nedded
+    //in the most cases
+    WebConnector ! Dismiss()
+    content match {
+
+      case None =>
+      case Some(content) => {
+        //remove if dialog is not called
+        onDownloadSuccess(content)
+      }
+
+    }
+
+  }
+
   override def doInBackground(url: String) = {
     image = downloadImage(url)
-    if (image != null) Some("") else None
+    if (!onlySave) Some("") else None
   }
 
   def loadImageFromWeb(url: String): Unit = {
     loadImageFromWeb(url, this.imagePostDownload)
   }
+
   def loadImageFromWeb(url: String, newPostDowload: ImagePostDownload): Unit = {
 
     //if (newPostDowload != null) this.imagePostDownload = newPostDowload
@@ -118,11 +147,8 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
       val instream = bufHttpEntity.getContent()
 
-      Log.d(TAG, "downloadImage after download[" + instream + "]")
       val bos = inputStreamToByteArray(instream)
-      Log.d(TAG, "downloadImage created baos[" + bos.size() + "]")
       saveCache(origUrl, bos.toByteArray(), context)
-      Log.d(TAG, "downloadImage saved cache[" + bos.size() + "]")
 
       if (onlySave) {
         return null;
@@ -223,20 +249,21 @@ class ImagePostDownload(view: ImageView) extends PostDownload {
 
     try {
 
+      view.clearAnimation();
+      view.setScaleType(ScaleType.CENTER_CROP);
+
       if (result != null) {
         // la view nel frattempo postrebbe non esistere più se
         // l'utente
         // ha cambiato pagina
-        Log.d(TAG, "ImagePostDownload execute[init set bitmap]");
-        view.clearAnimation();
-        view.setScaleType(ScaleType.CENTER_CROP);
+        Log.d(TAG, "ImagePostDownload execute[set bitmap]");
         view.setImageBitmap(result.asInstanceOf[Bitmap]);
-        view.invalidate();
-        Log.d(TAG, "ImagePostDownload execute[end set bitmap]");
 
       } else {
         view.setImageResource(R.drawable.not_image);
       }
+
+      view.invalidate();
 
     } catch {
       case e: NullPointerException =>

@@ -30,6 +30,8 @@ abstract class WebConnector(activity: Context,
 
   import WebConnector._
 
+  WebConnector(activity.asInstanceOf[Activity])
+
   val BASE_URL = "http://services.begenius.it/hotel/xml/"
 
   val TAG = classOf[WebConnector].getName
@@ -37,57 +39,14 @@ abstract class WebConnector(activity: Context,
 
   var response: String = null
 
-  case class Show
-  case class Dismiss
-  case class Message(text: String)
-
-  val messageDialog = new ProgressDialog(activity)
-  messageDialog.setIndeterminate(true)
-  messageDialog.setMessage(activity.getString(R.string.data_download))
-
-  val dialogManager = actor {
-
-    var counter = 0
-    val activityCast = activity.asInstanceOf[Activity]
-
-    while (true) {
-      receive {
-        case Show() =>
-          counter match {
-            case 0 =>
-              activityCast.runOnUiThread(new Runnable() {
-                def run() {
-                  messageDialog.show()
-                }
-              })
-              counter = counter + 1
-            case _ =>
-              counter = counter + 1
-          }
-
-        case Dismiss() =>
-          counter match {
-            case 1 =>
-              messageDialog.dismiss()
-            case x =>
-              if (x > 1)
-                counter = counter - 1
-
-          }
-
-        case Message(text) => messageDialog setMessage text
-
-      }
-
-    }
-  }
-
   def executeRequest(url: String): Unit = {
     executeRequest(url, null)
   }
+
   def executeRequest(url: String, onDownloadSuccess: PostDownload): Unit = {
     executeRequest(url, onDownloadSuccess, null)
   }
+
   def executeRequest(url: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload): Unit = {
 
     if (onDownloadSuccess != null)
@@ -106,26 +65,21 @@ abstract class WebConnector(activity: Context,
   }
 
   override def onPreExecute() = {
-    dialogManager ! Show()
+    WebConnector ! Show()
   }
 
   override def onPostExecute(content: Option[String]) = {
-
     content match {
-
       case None => onDownloadError
       case Some(content) => {
-        dialogManager ! Dismiss()
         onDownloadSuccess(content)
       }
-
     }
-
   }
 
   def onDownloadSuccess(content: String) = {
 
-    dialogManager ! Dismiss()
+    WebConnector ! Dismiss()
     successPostDownload.execute(content)
 
   }
@@ -134,10 +88,10 @@ abstract class WebConnector(activity: Context,
 
     Log.e(TAG, "onDownloadError [download error]");
 
-    dialogManager ! Message(activity.getString(R.string.data_download_error))
+    WebConnector ! Message(activity.getString(R.string.data_download_error))
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        dialogManager ! Dismiss()
+        WebConnector ! Dismiss()
       }
     }, 3000)
 
@@ -148,10 +102,10 @@ abstract class WebConnector(activity: Context,
   def onRequestError(error: String) = {
 
     Log.e(TAG, "onDownloadError [request error]");
-    dialogManager ! Message(activity.getString(R.string.data_request_error) + " : " + error)
+    WebConnector ! Message(activity.getString(R.string.data_request_error) + " : " + error)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        dialogManager ! Dismiss()
+        WebConnector ! Dismiss()
 
         if (requestErrorPostDownload != null)
           requestErrorPostDownload.execute(error)
@@ -163,10 +117,81 @@ abstract class WebConnector(activity: Context,
 
 }
 
-object WebConnector {
+/**
+ * This Object containes some utils methods,
+ * but is also used from manage syncronized 
+ * operations between activities , like
+ * download dialogs 
+ * 
+ */
+object WebConnector extends Actor {
 
   val TAG = classOf[WebConnector].toString()
-  val BASE_URL = "http://services.begenius.it/hotel/xml/"
+  var messageDialog: ProgressDialog = null
+  var activity: Activity = null
+
+  def apply(activity: Activity) = {
+
+    //reset all dialog only when
+    //is colled from new activity
+    if (activity != this.activity) {
+      
+      Log.d(TAG, "apply [set new activity and create new progressdialog]")
+      this.activity = activity
+
+      messageDialog = new ProgressDialog(activity)
+      messageDialog.setIndeterminate(true)
+      messageDialog.setMessage(activity.getString(R.string.data_download))
+      
+      counter = 0
+      
+    }
+  }
+
+  var counter = 0
+
+  case class Show
+  case class Dismiss
+  case class Message(text: String)
+
+  //start the actor
+  start
+  
+  override def act() = {
+    while (true) {
+      receive {
+        case Show() =>
+          counter match {
+            case 0 =>
+              Log.d(TAG, "act [called dialog show]")
+              activity.runOnUiThread(new Runnable() {
+                def run() {
+                  Log.d(TAG, "act [show progress dialog]")
+                  messageDialog.show()
+                }
+              })
+              counter = counter + 1
+            case _ =>
+              counter = counter + 1
+          }
+
+        case Dismiss() =>
+          counter match {
+            case 1 =>
+              messageDialog.dismiss()
+              counter = counter - 1
+            case x =>
+              if (x > 1)
+                counter = counter - 1
+
+          }
+
+        case Message(text) => messageDialog setMessage text
+
+      }
+
+    }
+  }
 
   val tempCache = scala.collection.mutable.Map[String, String]()
 
@@ -178,12 +203,12 @@ object WebConnector {
     new SimpleDateFormat("yyyy-MM-dd").parse(date)
   }
 
-  def doPost(content: String, operation: String): Option[String] = {
+  def doPost(content: String, url: String): Option[String] = {
 
     val client = new SimpleHttpClient()
 
     val response: Option[String] = client.post(
-      url = BASE_URL + operation,
+      url = url,
       params = Map("xml" -> content),
       encode = "UTF-8")
 
