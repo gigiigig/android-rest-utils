@@ -32,8 +32,6 @@ abstract class WebConnector(activity: Context,
 
   WebConnector(activity.asInstanceOf[Activity])
 
-  val BASE_URL = "http://services.begenius.it/hotel/xml/"
-
   val TAG = classOf[WebConnector].getName
   val TEST = false
 
