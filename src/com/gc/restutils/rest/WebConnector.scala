@@ -22,10 +22,15 @@ import android.app.Activity
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
                             private var downloadErrorPostDownload: PostDownload = null,
-                            private var requestErrorPostDownload: PostDownload = null) extends WebConnectoreBase {
+                            private var requestErrorPostDownload: PostDownload = null,
+                            var tempCache: Boolean = false, var permanentCache: Boolean = false) extends WebConnectoreBase {
+
+  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean) = {
+    this(activity, null, null, null, tempCache, permanentCache)
+  }
 
   def this(activity: Context) = {
-    this(activity, null, null, null)
+    this(activity, false, false)
   }
 
   import WebConnector._
@@ -58,7 +63,25 @@ abstract class WebConnector(activity: Context,
 
   override def doInBackground(url: String): Option[String] = {
 
-    return doGet(url)
+    var toReturn: String = null
+
+    if (tempCache)
+      toReturn = getFromTempCache(url)
+
+    if (toReturn == null && permanentCache)
+      toReturn = getFromPermanentCache(url, activity)
+
+    if (toReturn == null) {
+      val returned = doGet(url)
+
+      returned.foreach { content =>
+        if (tempCache) putToTempCache(url, content)
+        if (permanentCache) putToPermanentCache(url, content, activity)
+      }
+
+      returned
+    } else
+      Some(toReturn)
 
   }
 
@@ -117,10 +140,10 @@ abstract class WebConnector(activity: Context,
 
 /**
  * This Object containes some utils methods,
- * but is also used from manage syncronized 
+ * but is also used from manage syncronized
  * operations between activities , like
- * download dialogs 
- * 
+ * download dialogs
+ *
  */
 object WebConnector extends Actor {
 
@@ -133,16 +156,16 @@ object WebConnector extends Actor {
     //reset all dialog only when
     //is colled from new activity
     if (activity != this.activity) {
-      
+
       Log.d(TAG, "apply [set new activity and create new progressdialog]")
       this.activity = activity
 
       messageDialog = new ProgressDialog(activity)
       messageDialog.setIndeterminate(true)
       messageDialog.setMessage(activity.getString(R.string.data_download))
-      
+
       counter = 0
-      
+
     }
   }
 
@@ -154,7 +177,7 @@ object WebConnector extends Actor {
 
   //start the actor
   start
-  
+
   override def act() = {
     while (true) {
       receive {
@@ -184,14 +207,20 @@ object WebConnector extends Actor {
 
           }
 
-        case Message(text) => messageDialog setMessage text
+        case Message(text) =>
+          activity.runOnUiThread(new Runnable() {
+            def run() {
+              Log.d(TAG, "act [change message to progress dialog]")
+              messageDialog setMessage text
+            }
+          })
 
       }
 
     }
   }
 
-  val tempCache = scala.collection.mutable.Map[String, String]()
+  val tempCache = scala.collection.mutable.Map[String, String]() withDefaultValue (null)
 
   def formatDate(date: Date) = {
     new SimpleDateFormat("yyyy-MM-dd").format(date)
