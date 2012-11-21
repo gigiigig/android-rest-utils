@@ -27,6 +27,7 @@ import org.apache.http.impl.client.DefaultHttpClient
 class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConnector(context) {
 
   import WebConnector._
+  import BitmapWebLoader._
 
   override val TAG = classOf[BitmapWebLoader].toString()
 
@@ -165,6 +166,12 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   }
 
+}
+
+object BitmapWebLoader {
+
+  import WebConnector._
+
   protected def inputStreamToByteArray(instream: InputStream): ByteArrayOutputStream = {
     val bos = new ByteArrayOutputStream()
     var next = instream.read()
@@ -202,10 +209,20 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
 
   }
 
+  def clearCache(activity: Context) = {
+
+    //open root file
+    val fileList = activity.fileList()
+    fileList foreach { fileName =>
+      Log.d(TAG, "clearCache file to delete[" + fileName + "]")
+      activity.deleteFile(fileName)
+    }
+
+  }
+
   protected def deleteImageFromCache(url: String, context: Context) = {
     deleteObjectFromDisk(url.replace("/", "_"), context)
   }
-
 }
 
 class ImagePostDownload(view: ImageView) extends PostDownload {

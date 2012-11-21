@@ -18,6 +18,7 @@ import java.io.ObjectOutputStream
 import com.gc.restutils.R
 import android.os.Looper
 import android.app.Activity
+import scala.collection.JavaConverters._
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
@@ -309,7 +310,7 @@ object WebConnector extends Actor {
    *            URL of Json to delet from cache
    *
    */
-  def deleteFromChache(name: String, activity: Activity) = {
+  def deleteFromCache(name: String, activity: Activity) = {
 
     // delete from permanent chache
     val preferences = PreferenceManager
@@ -322,6 +323,23 @@ object WebConnector extends Actor {
 
     // delete from temp cache
     tempCache.remove(name);
+
+  }
+
+  def clearTempCache() = {
+    tempCache.clear()
+  }
+
+  def clearPermanentCache() = {
+
+    val preferences = PreferenceManager
+      .getDefaultSharedPreferences(activity)
+
+    val scpref = preferences.getAll() asScala
+
+    scpref foreach { item =>
+      preferences.edit().remove(item._1)
+    }
 
   }
 
