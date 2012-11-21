@@ -24,7 +24,7 @@ abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
                             private var downloadErrorPostDownload: PostDownload = null,
                             private var requestErrorPostDownload: PostDownload = null,
-                            var tempCache: Boolean = false, var permanentCache: Boolean = false) extends WebConnectoreBase {
+                            tempCache: Boolean = false, permanentCache: Boolean = false) extends WebConnectoreBase {
 
   def this(activity: Context, tempCache: Boolean, permanentCache: Boolean) = {
     this(activity, null, null, null, tempCache, permanentCache)
@@ -66,11 +66,18 @@ abstract class WebConnector(activity: Context,
 
     var toReturn: String = null
 
-    if (tempCache)
-      toReturn = getFromTempCache(url)
+    Log.d(TAG, "doInBackground use temp cache[" + tempCache + "]")
+    Log.d(TAG, "doInBackground use permanent cache[" + permanentCache + "]")
 
-    if (toReturn == null && permanentCache)
+    if (tempCache) {
+      toReturn = getFromTempCache(url)
+      Log.d(TAG, "doInBackground from temp cache[" + toReturn + "]");
+    }
+
+    if (toReturn == null && permanentCache) {
       toReturn = getFromPermanentCache(url, activity)
+      Log.d(TAG, "doInBackground from permenent cache[" + toReturn + "]");
+    }
 
     if (toReturn == null) {
       val returned = doGet(url)
