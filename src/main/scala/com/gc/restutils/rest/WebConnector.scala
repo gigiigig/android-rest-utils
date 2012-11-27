@@ -58,12 +58,6 @@ abstract class WebConnector(activity: Context,
     if (onDownloadError != null)
       this.downloadErrorPostDownload = onDownloadError
 
-    execute(url)
-
-  }
-
-  override def doInBackground(url: String): Option[String] = {
-
     var toReturn: String = null
 
     Log.d(TAG, "doInBackground use temp cache[" + tempCache + "]")
@@ -80,16 +74,22 @@ abstract class WebConnector(activity: Context,
     }
 
     if (toReturn == null) {
-      val returned = doGet(url)
-
-      returned.foreach { content =>
-        if (tempCache) putToTempCache(url, content)
-        if (permanentCache) putToPermanentCache(url, content, activity)
-      }
-
-      returned
+      execute(url)
     } else
-      Some(toReturn)
+      successPostDownload.execute(toReturn)
+
+  }
+
+  override def doInBackground(url: String): Option[String] = {
+
+    val returned = doGet(url)
+
+    returned.foreach { content =>
+      if (tempCache) putToTempCache(url, content)
+      if (permanentCache) putToPermanentCache(url, content, activity)
+    }
+
+    returned
 
   }
 
