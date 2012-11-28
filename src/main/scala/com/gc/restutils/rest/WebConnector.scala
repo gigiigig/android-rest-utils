@@ -36,7 +36,7 @@ abstract class WebConnector(activity: Context,
 
   import WebConnector._
 
-  WebConnector(activity.asInstanceOf[Activity])
+  //WebConnector(activity.asInstanceOf[Activity])
 
   val TAG = classOf[WebConnector].getName
   val TEST = false
@@ -94,7 +94,7 @@ abstract class WebConnector(activity: Context,
   }
 
   override def onPreExecute() = {
-    WebConnector ! Show()
+    WebConnector ! Show(activity.asInstanceOf[Activity])
   }
 
   override def onPostExecute(content: Option[String]) = {
@@ -108,7 +108,7 @@ abstract class WebConnector(activity: Context,
 
   def onDownloadSuccess(content: String) = {
 
-    WebConnector ! Dismiss()
+    WebConnector ! Dismiss(activity.asInstanceOf[Activity])
     successPostDownload.execute(content)
 
   }
@@ -117,10 +117,10 @@ abstract class WebConnector(activity: Context,
 
     Log.e(TAG, "onDownloadError [download error]");
 
-    WebConnector ! Message(activity.getString(R.string.data_download_error))
+    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_download_error))
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        WebConnector ! Dismiss()
+        WebConnector ! Dismiss(activity.asInstanceOf[Activity])
       }
     }, 3000)
 
@@ -131,10 +131,10 @@ abstract class WebConnector(activity: Context,
   def onRequestError(error: String) = {
 
     Log.e(TAG, "onDownloadError [request error]");
-    WebConnector ! Message(activity.getString(R.string.data_request_error) + " : " + error)
+    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_request_error) + " : " + error)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        WebConnector ! Dismiss()
+        WebConnector ! Dismiss(activity.asInstanceOf[Activity])
 
         if (requestErrorPostDownload != null)
           requestErrorPostDownload.execute(error)
@@ -155,33 +155,17 @@ abstract class WebConnector(activity: Context,
  */
 object WebConnector extends Actor {
 
-  val TAG = classOf[WebConnector].toString()
-  var messageDialog: ProgressDialog = null
-  var activity: Activity = null
-
-  def apply(activity: Activity) = {
-
-    //reset all dialog only when
-    //is colled from new activity
-    if (activity != this.activity) {
-
-      Log.d(TAG, "apply [set new activity and create new progressdialog]")
-      this.activity = activity
-
-      messageDialog = new ProgressDialog(activity)
-      messageDialog.setIndeterminate(true)
-      messageDialog.setMessage(activity.getString(R.string.data_download))
-
-      counter = 0
-
-    }
+  def main(args: Array[String]) {
+    println(dialogs)
   }
 
-  var counter = 0
+  val TAG = classOf[WebConnector].toString()
 
-  case class Show
-  case class Dismiss
-  case class Message(text: String)
+  case class Show(activity: Activity)
+  case class Dismiss(activity: Activity)
+  case class Message(activity: Activity, text: String)
+
+  var dialogs = Map[Activity, (ProgressDialog, Int)]()
 
   //start the actor
   start
@@ -189,43 +173,108 @@ object WebConnector extends Actor {
   override def act() = {
     while (true) {
       receive {
-        case Show() =>
-          counter match {
-            case 0 =>
-              Log.d(TAG, "act [called dialog show]")
+        case Show(activity) =>
+
+          val dialog = dialogs.get(activity)
+          dialog match {
+
+            case None =>
+              createAndShowMessageDialog(activity)
+
+            case Some(dialog) =>
+
+              dialog._2 match {
+                case 0 =>
+                  //                  activity.runOnUiThread(new Runnable() {
+                  //                    def run() {
+                  //                      dialog._1.show()
+                  //                      increaseDialog(activity)
+                  //                    }
+                  //                  })
+                  runOnUi(activity, { () =>
+                    dialog._1.show()
+                    increaseDialog(activity)
+                  })
+                case _ =>
+                  increaseDialog(activity)
+              }
+          }
+
+        case Dismiss(activity) =>
+          val dialog = dialogs(activity)
+          dialog._2 match {
+            case 1 =>
               activity.runOnUiThread(new Runnable() {
                 def run() {
-                  Log.d(TAG, "act [show progress dialog]")
-                  messageDialog.show()
+                  dialog._1.dismiss()
+                  decreaseDialog(activity)
                 }
               })
-              counter = counter + 1
-            case _ =>
-              counter = counter + 1
-          }
-
-        case Dismiss() =>
-          counter match {
-            case 1 =>
-              messageDialog.dismiss()
-              counter = counter - 1
             case x =>
               if (x > 1)
-                counter = counter - 1
+                decreaseDialog(activity)
 
           }
 
-        case Message(text) =>
+        case Message(activity, text) =>
           activity.runOnUiThread(new Runnable() {
             def run() {
               Log.d(TAG, "act [change message to progress dialog]")
-              messageDialog setMessage text
+              dialogs(activity)._1 setMessage text
             }
           })
 
       }
 
+      def runOnUi(activity: Activity, f: () => Unit) = {
+        activity.runOnUiThread(new Runnable() {
+          def run() {
+            f()
+          }
+        })
+      }
+
     }
+  }
+
+  def createAndShowMessageDialog(activity: Activity) = {
+    val dialogCount = dialogs.get(activity)
+    dialogCount match {
+      case None =>
+        activity.runOnUiThread(new Runnable() {
+          override def run() {
+            val newDialog = createDialog(activity)
+            dialogs += (activity -> newDialog)
+            newDialog._1.show()
+            dialogs(activity)
+          }
+        });
+      case Some(elem) => elem
+    }
+  }
+
+  def increaseDialog(activity: Activity) = {
+    val dialogCount = dialogs(activity)
+    val newElem = (dialogCount._1, dialogCount._2 + 1)
+    dialogs += (activity -> newElem)
+  }
+
+  def decreaseDialog(activity: Activity) = {
+    val dialogCount = dialogs(activity)
+    val newElem = (dialogCount._1, dialogCount._2 - 1)
+    dialogs += (activity -> newElem)
+  }
+
+  def createDialog(newActivity: Activity): (ProgressDialog, Int) = {
+
+    Log.d(TAG, "apply [set new activity and create new progressdialog]")
+
+    val messageDialog = new ProgressDialog(newActivity)
+    messageDialog.setIndeterminate(true)
+    messageDialog.setMessage(newActivity.getString(R.string.data_download))
+
+    (messageDialog -> 1)
+
   }
 
   val tempCache = scala.collection.mutable.Map[String, String]() withDefaultValue (null)
@@ -337,7 +386,7 @@ object WebConnector extends Actor {
     tempCache.clear()
   }
 
-  def clearPermanentCache() = {
+  def clearPermanentCache(activity: Activity) = {
 
     val preferences = PreferenceManager
       .getDefaultSharedPreferences(activity)

@@ -23,6 +23,7 @@ import org.apache.http.client.HttpClient
 import java.io.ByteArrayInputStream
 import java.net.URL
 import org.apache.http.impl.client.DefaultHttpClient
+import android.app.Activity
 
 class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConnector(context) {
 
@@ -40,7 +41,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
     //called only for onlySave , used for batch download
     if (onlySave) {
       super.onPreExecute()
-      WebConnector ! Message("download images")
+      WebConnector ! Message(context.asInstanceOf[Activity] , "download images")
     }
     imagePostDownload.prepareView()
   }
@@ -52,7 +53,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
   override def onPostExecute(content: Option[String]) = {
     //dismiss is called evrytime , but probably is not nedded
     //in the most cases
-    WebConnector ! Dismiss()
+    WebConnector ! Dismiss(context.asInstanceOf[Activity])
     content match {
 
       case None =>
