@@ -1,29 +1,39 @@
 package com.gc.restutils.rest
 
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.net.URL
+
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.entity.BufferedHttpEntity
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.params.BasicHttpParams
+import org.apache.http.params.HttpConnectionParams
+import org.apache.http.HttpResponse
+
+import com.gc.restutils.R
+
+import BitmapWebLoader.deleteImageFromCache
+import BitmapWebLoader.getImageFromPermanentCache
+import BitmapWebLoader.inputStreamToByteArray
+import BitmapWebLoader.saveCache
+import WebConnector.Dismiss
+import WebConnector.Message
+import WebConnector.TAG
+import WebConnector.deleteObjectFromDisk
+import WebConnector.getObjectFromDisk
+import WebConnector.writeObjectToDisk
+import android.app.Activity
 import android.content.Context
-import android.view.animation.RotateAnimation
-import android.widget.ImageView
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.Bitmap
 import android.util.Log
 import android.view.animation.Animation
 import android.view.animation.LinearInterpolator
+import android.view.animation.RotateAnimation
 import android.widget.ImageView.ScaleType
-import com.gc.restutils.R
-import android.graphics.Bitmap
-import org.apache.http.HttpResponse
-import org.apache.http.params.HttpConnectionParams
-import org.apache.http.HttpEntity
-import org.apache.http.client.methods.HttpGet
-import android.graphics.drawable.BitmapDrawable
-import org.apache.http.entity.BufferedHttpEntity
-import org.apache.http.params.BasicHttpParams
-import java.net.MalformedURLException
-import java.io.InputStream
-import java.io.ByteArrayOutputStream
-import org.apache.http.client.HttpClient
-import java.io.ByteArrayInputStream
-import java.net.URL
-import org.apache.http.impl.client.DefaultHttpClient
-import android.app.Activity
+import android.widget.ImageView
 
 class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConnector(context) {
 

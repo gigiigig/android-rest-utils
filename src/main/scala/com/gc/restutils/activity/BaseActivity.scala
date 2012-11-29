@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.text.Spanned
 import android.text.Html
-import scala.collection.JavaConverters._
 import scala.collection.JavaConversions._
 
 trait BaseActivity extends Activity {

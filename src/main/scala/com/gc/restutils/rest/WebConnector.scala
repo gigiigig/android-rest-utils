@@ -1,24 +1,23 @@
 package com.gc.restutils.rest
-import scala.xml._
-import scala.io._
-import android.util._
-import android.app.Activity
-import android.app.Activity._
-import java.util.Date
-import android.app.ProgressDialog
-import android.os.Handler
-import java.text.SimpleDateFormat
-import scala.actors.Actor
-import scala.actors.Actor._
-import android.preference.PreferenceManager
-import android.content.Context
-import java.io.ObjectInputStream
 import java.io.FileNotFoundException
+import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
-import com.gc.restutils.R
-import android.os.Looper
-import android.app.Activity
+import java.text.SimpleDateFormat
+import java.util.Date
+
+import scala.actors.Actor._
+import scala.actors.Actor
 import scala.collection.JavaConverters._
+
+import com.gc.restutils.R
+
+import android.app.Activity
+import android.app.Activity
+import android.app.ProgressDialog
+import android.content.Context
+import android.os.Handler
+import android.preference.PreferenceManager
+import android.util._
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
@@ -204,11 +203,9 @@ object WebConnector extends Actor {
           val dialog = dialogs(activity)
           dialog._2 match {
             case 1 =>
-              activity.runOnUiThread(new Runnable() {
-                def run() {
-                  dialog._1.dismiss()
-                  decreaseDialog(activity)
-                }
+              runOnUi(activity, { () =>
+                dialog._1.dismiss()
+                decreaseDialog(activity)
               })
             case x =>
               if (x > 1)
@@ -330,7 +327,7 @@ object WebConnector extends Actor {
                           activity: Context) = {
 
     val preferences = PreferenceManager
-      .getDefaultSharedPreferences(activity)
+      .getDefaultSharedPreferences(activity) 
 
     val edit = preferences.edit()
     edit.putString(name, value);

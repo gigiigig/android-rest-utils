@@ -10,6 +10,13 @@ object General {
     versionCode := 0,
     scalaVersion := "2.9.2",
     platformName in Android := "android-10"
+    /*mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
+      ms filter { case (file, toPath) =>
+        false//!toPath.contains("R.class")
+      }
+    },
+    sourceManaged in Android := file("")*/
+    
   )
 
   val proguardSettings = Seq (

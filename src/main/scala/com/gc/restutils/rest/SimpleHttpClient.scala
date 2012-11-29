@@ -3,9 +3,11 @@ package com.gc.restutils.rest
 import java.net.URI
 import java.net.URLEncoder
 import java.util.ArrayList
+
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
+import org.apache.http.conn.params.ConnRoutePNames
 import org.apache.http.impl.client.DefaultHttpClient
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.util.EntityUtils
@@ -13,7 +15,6 @@ import org.apache.http.HttpHost
 import org.apache.http.HttpResponse
 import org.apache.http.HttpStatus
 import org.apache.http.NameValuePair
-import org.apache.http.conn.params.ConnRoutePNames
 
 /**
  * Simple HTTP client based on [[http://hc.apache.org/ Apache HttpComponents]].
