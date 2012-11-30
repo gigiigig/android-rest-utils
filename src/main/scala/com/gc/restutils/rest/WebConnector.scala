@@ -5,12 +5,9 @@ import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 import scala.actors.Actor
 import scala.collection.JavaConverters._
-
 import com.gc.restutils.R
-
 import android.app.Activity
 import android.app.Activity
 import android.app.ProgressDialog
@@ -18,19 +15,21 @@ import android.content.Context
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.util._
+import android.view.ViewGroup
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
                             private var downloadErrorPostDownload: PostDownload = null,
                             private var requestErrorPostDownload: PostDownload = null,
-                            tempCache: Boolean = false, permanentCache: Boolean = false) extends WebConnectoreBase {
+                            tempCache: Boolean = false, permanentCache: Boolean = false,
+                            loaderShower: LoaderShower) extends WebConnectoreBase {
 
-  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean) = {
-    this(activity, null, null, null, tempCache, permanentCache)
+  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean, loaderShower: LoaderShower) = {
+    this(activity, null, null, null, tempCache, permanentCache, loaderShower)
   }
 
-  def this(activity: Context) = {
-    this(activity, false, false)
+  def this(activity: Context, loaderShower: LoaderShower) = {
+    this(activity, false, false, loaderShower: LoaderShower)
   }
 
   import WebConnector._
@@ -93,7 +92,7 @@ abstract class WebConnector(activity: Context,
   }
 
   override def onPreExecute() = {
-    WebConnector ! Show(activity.asInstanceOf[Activity])
+    WebConnector ! Show(activity.asInstanceOf[Activity], loaderShower)
   }
 
   override def onPostExecute(content: Option[String]) = {
@@ -107,7 +106,7 @@ abstract class WebConnector(activity: Context,
 
   def onDownloadSuccess(content: String) = {
 
-    WebConnector ! Dismiss(activity.asInstanceOf[Activity])
+    WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
     successPostDownload.execute(content)
 
   }
@@ -116,10 +115,10 @@ abstract class WebConnector(activity: Context,
 
     Log.e(TAG, "onDownloadError [download error]");
 
-    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_download_error))
+    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_download_error), loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        WebConnector ! Dismiss(activity.asInstanceOf[Activity])
+        WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
       }
     }, 3000)
 
@@ -127,13 +126,14 @@ abstract class WebConnector(activity: Context,
       downloadErrorPostDownload.execute(null)
 
   }
+
   def onRequestError(error: String) = {
 
     Log.e(TAG, "onDownloadError [request error]");
-    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_request_error) + " : " + error)
+    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_request_error) + " : " + error, loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
-        WebConnector ! Dismiss(activity.asInstanceOf[Activity])
+        WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
 
         if (requestErrorPostDownload != null)
           requestErrorPostDownload.execute(error)
@@ -160,25 +160,28 @@ object WebConnector extends Actor {
 
   val TAG = classOf[WebConnector].toString()
 
-  case class Show(activity: Activity)
-  case class Dismiss(activity: Activity)
-  case class Message(activity: Activity, text: String)
+  case class Show(activity: Activity, loaderShower: LoaderShower)
+  case class Dismiss(activity: Activity, loaderShower: LoaderShower)
+  case class Message(activity: Activity, text: String, loaderShower: LoaderShower)
 
-  var dialogs = Map[Activity, (ProgressDialog, Int)]()
+  var dialogs = Map[Activity, (LoaderShower, Int)]()
 
   //start the actor
   start
 
   override def act() = {
+
     while (true) {
+
       receive {
-        case Show(activity) =>
+
+        case Show(activity, loaderShower) =>
 
           val dialog = dialogs.get(activity)
           dialog match {
 
             case None =>
-              createAndShowMessageDialog(activity)
+              createAndShowMessageDialog(activity, loaderShower)
 
             case Some(dialog) =>
               dialog._2 match {
@@ -192,12 +195,13 @@ object WebConnector extends Actor {
               }
           }
 
-        case Dismiss(activity) =>
+        case Dismiss(activity, loaderShower) =>
+
           val dialog = dialogs(activity)
           dialog._2 match {
             case 1 =>
               runOnUi(activity, { () =>
-                dialog._1.dismiss()
+                dialog._1.hide()
                 decreaseDialog(activity)
               })
             case x =>
@@ -206,7 +210,7 @@ object WebConnector extends Actor {
 
           }
 
-        case Message(activity, text) =>
+        case Message(activity, text, loaderShower) =>
           runOnUi(activity, { () =>
             Log.d(TAG, "act [change message to progress dialog]")
             dialogs(activity)._1 setMessage text
@@ -225,13 +229,13 @@ object WebConnector extends Actor {
     }
   }
 
-  def createAndShowMessageDialog(activity: Activity) = {
+  def createAndShowMessageDialog(activity: Activity, loaderShower: LoaderShower) = {
     val dialogCount = dialogs.get(activity)
     dialogCount match {
       case None =>
         activity.runOnUiThread(new Runnable() {
           override def run() {
-            val newDialog = createDialog(activity)
+            val newDialog = (loaderShower, 1)
             dialogs += (activity -> newDialog)
             newDialog._1.show()
             dialogs(activity)
@@ -253,7 +257,7 @@ object WebConnector extends Actor {
     dialogs += (activity -> newElem)
   }
 
-  def createDialog(newActivity: Activity): (ProgressDialog, Int) = {
+  def createDialog(newActivity: Activity): ProgressDialog = {
 
     Log.d(TAG, "apply [set new activity and create new progressdialog]")
 
@@ -261,7 +265,7 @@ object WebConnector extends Actor {
     messageDialog.setIndeterminate(true)
     messageDialog.setMessage(newActivity.getString(R.string.data_download))
 
-    (messageDialog -> 1)
+    messageDialog
 
   }
 
@@ -446,3 +450,43 @@ object WebConnector extends Actor {
 trait PostDownload {
   def execute(obj: Object)
 }
+
+trait LoaderShower {
+  def show()
+  def hide()
+  def setMessage(message: String)
+}
+
+class DialogLoader(activity: Context, message: String) extends LoaderShower {
+
+  val dialog = WebConnector.createDialog(activity.asInstanceOf[Activity])
+
+  override def show = {
+    dialog.show()
+  }
+
+  override def hide() = {
+    dialog.dismiss()
+  }
+  
+  override def setMessage(message: String) = {
+    dialog.setMessage(message)
+  }
+
+
+}
+
+class ImageLoader(activity: Activity, view: ViewGroup, bitmap: Int) extends LoaderShower {
+
+  override def show() = {
+
+  }
+
+  override def hide() = {
+
+  }
+
+}
+
+
+
