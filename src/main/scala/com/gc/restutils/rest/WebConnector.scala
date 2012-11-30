@@ -4,8 +4,8 @@ import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
-import scala.actors.Actor._
 import scala.actors.Actor
 import scala.collection.JavaConverters._
 
@@ -181,15 +181,8 @@ object WebConnector extends Actor {
               createAndShowMessageDialog(activity)
 
             case Some(dialog) =>
-
               dialog._2 match {
                 case 0 =>
-                  //                  activity.runOnUiThread(new Runnable() {
-                  //                    def run() {
-                  //                      dialog._1.show()
-                  //                      increaseDialog(activity)
-                  //                    }
-                  //                  })
                   runOnUi(activity, { () =>
                     dialog._1.show()
                     increaseDialog(activity)
@@ -214,11 +207,9 @@ object WebConnector extends Actor {
           }
 
         case Message(activity, text) =>
-          activity.runOnUiThread(new Runnable() {
-            def run() {
-              Log.d(TAG, "act [change message to progress dialog]")
-              dialogs(activity)._1 setMessage text
-            }
+          runOnUi(activity, { () =>
+            Log.d(TAG, "act [change message to progress dialog]")
+            dialogs(activity)._1 setMessage text
           })
 
       }
@@ -277,11 +268,11 @@ object WebConnector extends Actor {
   val tempCache = scala.collection.mutable.Map[String, String]() withDefaultValue (null)
 
   def formatDate(date: Date) = {
-    new SimpleDateFormat("yyyy-MM-dd").format(date)
+    new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date)
   }
 
   def parseDate(date: String) = {
-    new SimpleDateFormat("yyyy-MM-dd").parse(date)
+    new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(date)
   }
 
   def doPost(content: String, url: String): Option[String] = {
@@ -327,7 +318,7 @@ object WebConnector extends Actor {
                           activity: Context) = {
 
     val preferences = PreferenceManager
-      .getDefaultSharedPreferences(activity) 
+      .getDefaultSharedPreferences(activity)
 
     val edit = preferences.edit()
     edit.putString(name, value);
