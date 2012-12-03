@@ -12,14 +12,10 @@ import org.apache.http.params.BasicHttpParams
 import org.apache.http.params.HttpConnectionParams
 import org.apache.http.HttpResponse
 
-import com.gc.restutils.R
-
 import BitmapWebLoader.deleteImageFromCache
 import BitmapWebLoader.getImageFromPermanentCache
 import BitmapWebLoader.inputStreamToByteArray
 import BitmapWebLoader.saveCache
-import WebConnector.Dismiss
-import WebConnector.Message
 import WebConnector.TAG
 import WebConnector.deleteObjectFromDisk
 import WebConnector.getObjectFromDisk
@@ -35,7 +31,20 @@ import android.view.animation.RotateAnimation
 import android.widget.ImageView.ScaleType
 import android.widget.ImageView
 
-class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConnector(context) {
+class BitmapWebLoader(context: Context, view: ImageView = null, loaderImage: Int, defaultImage: Int, message: String = "download image") extends WebConnector(context, new DialogLoader(context, message)) {
+
+  /**
+   * This is the standard contructor,
+   * loader reoplace thie image of the imageView with image
+   * passed in  loader image , and not open any dialog.
+   *
+   * If image to donwnload isn't finded, image will be replaced
+   * with image in defaultImage
+   *
+   */
+  def this(context: Context, view: ImageView, loaderImage: Int, defaultImage: Int) = {
+    this(context, view, loaderImage, defaultImage, null)
+  }
 
   import WebConnector._
   import BitmapWebLoader._
@@ -43,7 +52,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
   override val TAG = classOf[BitmapWebLoader].toString()
 
   protected var image: Bitmap = null
-  protected val imagePostDownload: ImagePostDownload = new ImagePostDownload(view)
+  protected val imagePostDownload: ImagePostDownload = new ImagePostDownload(view, loaderImage, defaultImage)
   protected val onlySave = view == null
 
   override def onPreExecute() = {
@@ -51,7 +60,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
     //called only for onlySave , used for batch download
     if (onlySave) {
       super.onPreExecute()
-      WebConnector ! Message(context.asInstanceOf[Activity] , "download images")
+      WebConnector ! Message(context.asInstanceOf[Activity], message, loaderShower)
     }
     imagePostDownload.prepareView()
   }
@@ -63,7 +72,7 @@ class BitmapWebLoader(context: Context, view: ImageView = null) extends WebConne
   override def onPostExecute(content: Option[String]) = {
     //dismiss is called evrytime , but probably is not nedded
     //in the most cases
-    WebConnector ! Dismiss(context.asInstanceOf[Activity])
+    WebConnector ! Dismiss(context.asInstanceOf[Activity], loaderShower)
     content match {
 
       case None =>
@@ -236,7 +245,7 @@ object BitmapWebLoader {
   }
 }
 
-class ImagePostDownload(view: ImageView) extends PostDownload {
+class ImagePostDownload(view: ImageView, loaderImage: Int, defaultImage: Int) extends PostDownload {
 
   val TAG = classOf[ImagePostDownload].toString
 
@@ -265,7 +274,7 @@ class ImagePostDownload(view: ImageView) extends PostDownload {
     try {
       // la view nel frattempo postrebbe non esistere più se l'utente
       // ha cambiato pagina
-      view.setImageResource(R.drawable.loader);
+      view.setImageResource(loaderImage);
       view.setScaleType(ScaleType.CENTER);
       view.startAnimation(r);
     } catch {
@@ -288,7 +297,7 @@ class ImagePostDownload(view: ImageView) extends PostDownload {
         view.setImageBitmap(result.asInstanceOf[Bitmap]);
 
       } else {
-        view.setImageResource(R.drawable.not_image);
+        view.setImageResource(defaultImage);
       }
 
       view.invalidate();
@@ -296,7 +305,7 @@ class ImagePostDownload(view: ImageView) extends PostDownload {
     } catch {
       case e: NullPointerException =>
         Log.w(TAG, "ImagePostDownload execute[" + e + "]")
-        view.setImageResource(R.drawable.not_image);
+        view.setImageResource(defaultImage);
     }
 
   }

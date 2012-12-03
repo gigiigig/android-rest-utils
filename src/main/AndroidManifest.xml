@@ -2,11 +2,10 @@
     package="com.gc.restutils">
 
     <application
-        android:icon="@drawable/android:star_big_on"
-        android:label="@string/app_name"
+        android:label="App Rest Utils"
         android:debuggable="true">
 
-        <activity android:label="@string/app_name" android:name=".MainActivity">
+        <activity android:label="App Rest Utils" android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

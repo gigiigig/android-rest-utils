@@ -5,9 +5,10 @@ import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 import scala.actors.Actor
 import scala.collection.JavaConverters._
-import com.gc.restutils.R
+
 import android.app.Activity
 import android.app.Activity
 import android.app.ProgressDialog
@@ -15,21 +16,42 @@ import android.content.Context
 import android.os.Handler
 import android.preference.PreferenceManager
 import android.util._
+import android.view.animation.Animation
+import android.view.animation.LinearInterpolator
+import android.view.animation.RotateAnimation
+import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView.ScaleType
+import android.widget.ImageView
+import android.widget.LinearLayout
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
                             private var downloadErrorPostDownload: PostDownload = null,
                             private var requestErrorPostDownload: PostDownload = null,
                             tempCache: Boolean = false, permanentCache: Boolean = false,
-                            loaderShower: LoaderShower) extends WebConnectoreBase {
+                            protected val loaderShower: LoaderShower,
+                            dataDownloadErrorMessage: String,
+                            dataRequestErrorMessage: String) extends WebConnectoreBase {
+
+  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean,
+           loaderShower: LoaderShower, dataDownloadErrorMessage: String,
+           dataRequestErrorMessage: String) = {
+    this(activity, null, null, null, tempCache, permanentCache, loaderShower, dataDownloadErrorMessage, dataRequestErrorMessage)
+  }
 
   def this(activity: Context, tempCache: Boolean, permanentCache: Boolean, loaderShower: LoaderShower) = {
-    this(activity, null, null, null, tempCache, permanentCache, loaderShower)
+    this(activity, tempCache, permanentCache, loaderShower, "Download error", "Request error")
+  }
+
+  def this(activity: Context, loaderShower: LoaderShower, dataDownloadErrorMessage: String,
+           dataRequestErrorMessage: String) = {
+    this(activity, false, false, loaderShower, dataDownloadErrorMessage, dataRequestErrorMessage)
   }
 
   def this(activity: Context, loaderShower: LoaderShower) = {
-    this(activity, false, false, loaderShower: LoaderShower)
+    this(activity, false, false, loaderShower)
   }
 
   import WebConnector._
@@ -115,7 +137,7 @@ abstract class WebConnector(activity: Context,
 
     Log.e(TAG, "onDownloadError [download error]");
 
-    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_download_error), loaderShower)
+    WebConnector ! Message(activity.asInstanceOf[Activity], dataDownloadErrorMessage, loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
         WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
@@ -130,7 +152,7 @@ abstract class WebConnector(activity: Context,
   def onRequestError(error: String) = {
 
     Log.e(TAG, "onDownloadError [request error]");
-    WebConnector ! Message(activity.asInstanceOf[Activity], activity.getString(R.string.data_request_error) + " : " + error, loaderShower)
+    WebConnector ! Message(activity.asInstanceOf[Activity], dataRequestErrorMessage + " : " + error, loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
         WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
@@ -255,18 +277,6 @@ object WebConnector extends Actor {
     val dialogCount = dialogs(activity)
     val newElem = (dialogCount._1, dialogCount._2 - 1)
     dialogs += (activity -> newElem)
-  }
-
-  def createDialog(newActivity: Activity): ProgressDialog = {
-
-    Log.d(TAG, "apply [set new activity and create new progressdialog]")
-
-    val messageDialog = new ProgressDialog(newActivity)
-    messageDialog.setIndeterminate(true)
-    messageDialog.setMessage(newActivity.getString(R.string.data_download))
-
-    messageDialog
-
   }
 
   val tempCache = scala.collection.mutable.Map[String, String]() withDefaultValue (null)
@@ -459,7 +469,9 @@ trait LoaderShower {
 
 class DialogLoader(activity: Context, message: String) extends LoaderShower {
 
-  val dialog = WebConnector.createDialog(activity.asInstanceOf[Activity])
+  val TAG = classOf[DialogLoader].getName()
+
+  val dialog = createDialog(activity.asInstanceOf[Activity])
 
   override def show = {
     dialog.show()
@@ -468,21 +480,88 @@ class DialogLoader(activity: Context, message: String) extends LoaderShower {
   override def hide() = {
     dialog.dismiss()
   }
-  
+
   override def setMessage(message: String) = {
     dialog.setMessage(message)
   }
 
+  def createDialog(newActivity: Activity): ProgressDialog = {
+
+    Log.d(TAG, "apply [set new activity and create new progressdialog]")
+
+    val messageDialog = new ProgressDialog(newActivity)
+    messageDialog.setIndeterminate(true)
+    messageDialog.setMessage(message)
+
+    messageDialog
+
+  }
 
 }
 
-class ImageLoader(activity: Activity, view: ViewGroup, bitmap: Int) extends LoaderShower {
+class ImageLoader(activity: Activity, view: ViewGroup, bitmapId: Int) extends LoaderShower {
+
+  val TAG = classOf[ImageLoader].getName()
+
+  //retrive image from id
+  val image = new ImageView(activity)
+  image.setImageResource(bitmapId)
+  val params = new ViewGroup.LayoutParams(80, 80)
+  image.setLayoutParams(params)
+  image.setScaleType(ScaleType.CENTER)
+  image.setAnimation(animation)
+
+  val layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
+    ViewGroup.LayoutParams.FILL_PARENT,
+    Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL)
+
+  val layout = new LinearLayout(activity)
+  layout.addView(image, layoutParams)
 
   override def show() = {
+
+    //set image on viewGroup as content
+    //view.setVisibility(View.GONE)
+
+    // shuld be the first image
+    view.addView(layout, 0)
 
   }
 
   override def hide() = {
+    //val index = view.indexOfChild(image)
+    //Log.d(TAG, "hide index of image[" + index + "]")
+    view.removeView(layout)
+  }
+
+  override def setMessage(message: String) = {
+    //this is used maybe to show message only when necessary
+  }
+
+  lazy val animation = {
+
+    val ROTATE_FROM = 0.0f; // from what position you want to rotate
+    // it
+    val ROTATE_TO = 360.0f; // how many times you want it to
+    // rotate in one 'animation' (in
+    // this example you want to fully
+    // rotate -360 degrees- it 10
+    // times)
+    //
+    val r = new RotateAnimation(ROTATE_FROM, ROTATE_TO,
+      Animation.RELATIVE_TO_SELF, 0.5f,
+      Animation.RELATIVE_TO_SELF, 0.5f);
+    r.setDuration(1000); // here you determine how fast you want the
+    // image to rotate
+    r.setRepeatCount(Animation.INFINITE); // how many times you want to
+    // repeat the animation
+    r.setInterpolator(new LinearInterpolator()); // the curve of the
+    // animation; use
+    // LinearInterpolator
+    // to keep a consistent
+    // speed all the way
+
+    r
 
   }
 
