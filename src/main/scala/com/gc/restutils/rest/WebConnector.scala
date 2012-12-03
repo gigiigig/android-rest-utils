@@ -5,10 +5,8 @@ import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 import scala.actors.Actor
 import scala.collection.JavaConverters._
-
 import android.app.Activity
 import android.app.Activity
 import android.app.ProgressDialog
@@ -23,8 +21,10 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView.ScaleType
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import com.gc.restutils.util.Utils
 
 abstract class WebConnector(activity: Context,
                             private var successPostDownload: PostDownload = null,
@@ -504,12 +504,7 @@ class ImageLoader(activity: Activity, view: ViewGroup, bitmapId: Int) extends Lo
   val TAG = classOf[ImageLoader].getName()
 
   //retrive image from id
-  val image = new ImageView(activity)
-  image.setImageResource(bitmapId)
-  val params = new ViewGroup.LayoutParams(80, 80)
-  image.setLayoutParams(params)
-  image.setScaleType(ScaleType.CENTER)
-  image.setAnimation(animation)
+  val image = ImageLoader.createImage(activity, bitmapId)
 
   val layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
     ViewGroup.LayoutParams.FILL_PARENT,
@@ -536,6 +531,71 @@ class ImageLoader(activity: Activity, view: ViewGroup, bitmapId: Int) extends Lo
 
   override def setMessage(message: String) = {
     //this is used maybe to show message only when necessary
+  }
+
+}
+
+/**
+ * Create an image loader located on an arbitrary
+ * image position of the screen
+ */
+class LayoutedImageLoader(activity: Activity, bitmapId: Int, marginTop: Int) extends LoaderShower {
+
+  def this(activity: Activity, bitmapId: Int) = {
+    this(activity, bitmapId, 25)
+  }
+
+  var added = false
+
+  //retrive image from id
+  val image = ImageLoader.createImage(activity, bitmapId)
+
+  val layout = new LinearLayout(activity)
+  val params = new LinearLayout.LayoutParams(
+    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+    Gravity.TOP | Gravity.CENTER_HORIZONTAL)
+
+  params.setMargins(0, Utils.dipToPx(activity, marginTop).toInt, 0, 0)
+
+  layout.addView(image, params)
+
+  override def show() = {
+
+    if (!added) {
+      //add this content in fullscreen
+      //to activity , image should be centered
+      activity.addContentView(layout, new ViewGroup.LayoutParams(
+        ViewGroup.LayoutParams.FILL_PARENT, ViewGroup.LayoutParams.FILL_PARENT))
+
+      added = true
+
+    } else {
+      layout.setVisibility(View.VISIBLE)
+    }
+  }
+
+  override def hide() = {
+    layout.setVisibility(View.GONE)
+  }
+
+  override def setMessage(message: String) = {
+    //this is used maybe to show message only when necessary
+  }
+
+}
+
+object ImageLoader {
+
+  def createImage(activity: Activity, bitmapId: Int): ImageView = {
+    //retrive image from id
+    val image = new ImageView(activity)
+    image.setImageResource(bitmapId)
+    val params = new ViewGroup.LayoutParams(80, 80)
+    image.setLayoutParams(params)
+    image.setScaleType(ScaleType.CENTER)
+    image.setAnimation(animation)
+
+    image
   }
 
   lazy val animation = {
@@ -566,6 +626,5 @@ class ImageLoader(activity: Activity, view: ViewGroup, bitmapId: Int) extends Lo
   }
 
 }
-
 
 
