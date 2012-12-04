@@ -26,22 +26,48 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import com.gc.restutils.util.Utils
 
-abstract class WebConnector(activity: Context,
-                            private var successPostDownload: PostDownload = null,
-                            private var downloadErrorPostDownload: PostDownload = null,
-                            private var requestErrorPostDownload: PostDownload = null,
-                            tempCache: Boolean = false, permanentCache: Boolean = false,
-                            protected val loaderShower: LoaderShower,
-                            dataDownloadErrorMessage: String,
-                            dataRequestErrorMessage: String) extends WebConnectoreBase {
+/*
+ * Class for manage background donwload processes ,
+ * Manage download background with download operation
+ * noticed as ProgressDialog,
+ * image injected in some GroupView
+ * or image show over the activity content
+ * 
+ * This class is not to be used directly , 
+ * but for be extended.
+ * 
+ * Every subclass must call executeRequest method 
+ * for start managed background download,
+ * 
+ */
+abstract class WebConnector(
+  val activity: Context,
+  private var successPostDownload: PostDownload = null,
+  private var downloadErrorPostDownload: PostDownload = null,
+  private var requestErrorPostDownload: PostDownload = null,
+  tempCache: Boolean = false, permanentCache: Boolean = false,
+  protected val loaderShower: LoaderShower,
+  dataDownloadErrorMessage: String,
+  dataRequestErrorMessage: String) extends WebConnectoreBase {
 
-  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean,
-           loaderShower: LoaderShower, dataDownloadErrorMessage: String,
+  def this(activity: Context,
+           tempCache: Boolean,
+           permanentCache: Boolean,
+           loaderShower: LoaderShower,
+           dataDownloadErrorMessage: String,
            dataRequestErrorMessage: String) = {
     this(activity, null, null, null, tempCache, permanentCache, loaderShower, dataDownloadErrorMessage, dataRequestErrorMessage)
   }
 
-  def this(activity: Context, tempCache: Boolean, permanentCache: Boolean, loaderShower: LoaderShower) = {
+  /**
+   * This is the simpler constructor with only
+   * mandatory fields for make class working
+   *
+   */
+  def this(activity: Context,
+           tempCache: Boolean,
+           permanentCache: Boolean,
+           loaderShower: LoaderShower) = {
     this(activity, tempCache, permanentCache, loaderShower, "Download error", "Request error")
   }
 
@@ -71,6 +97,21 @@ abstract class WebConnector(activity: Context,
     executeRequest(url, onDownloadSuccess, null)
   }
 
+  /**
+   * On downloadSuccess and onDownloadError prameters,
+   * here are postDwonload class,
+   * it means that are excuted after standard
+   * functions wich manage the dialog's behavior,
+   * for alter dialogs behavior,
+   * it must be reimplement methods
+   *
+   * onDownloadSuccess(String)
+   *
+   * and
+   *
+   * onDownloadError
+   *
+   */
   def executeRequest(url: String, onDownloadSuccess: PostDownload, onDownloadError: PostDownload): Unit = {
 
     if (onDownloadSuccess != null)
@@ -102,7 +143,14 @@ abstract class WebConnector(activity: Context,
 
   override def doInBackground(url: String): Option[String] = {
 
-    val returned = doGet(url)
+    val returned =
+      try {
+        doGet(url)
+      } catch {
+        case e =>
+          Log.e(TAG, "doInBackground [" + e + "]")
+          None
+      }
 
     returned.foreach { content =>
       if (tempCache) putToTempCache(url, content)
@@ -119,8 +167,11 @@ abstract class WebConnector(activity: Context,
 
   override def onPostExecute(content: Option[String]) = {
     content match {
-      case None => onDownloadError
+      case None =>
+        Log.d(TAG, "onPostExecute [returned none run onDownloadError]")
+        onDownloadError
       case Some(content) => {
+        Log.d(TAG, "doInBackground returned [content]")
         onDownloadSuccess(content)
       }
     }
@@ -135,23 +186,22 @@ abstract class WebConnector(activity: Context,
 
   def onDownloadError = {
 
-    Log.e(TAG, "onDownloadError [download error]");
+    Log.w(TAG, "onDownloadError [download error]");
 
     WebConnector ! Message(activity.asInstanceOf[Activity], dataDownloadErrorMessage, loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
         WebConnector ! Dismiss(activity.asInstanceOf[Activity], loaderShower)
+        if (downloadErrorPostDownload != null)
+          downloadErrorPostDownload.execute(null)
       }
     }, 3000)
-
-    if (downloadErrorPostDownload != null)
-      downloadErrorPostDownload.execute(null)
 
   }
 
   def onRequestError(error: String) = {
 
-    Log.e(TAG, "onDownloadError [request error]");
+    Log.w(TAG, "onDownloadError [request error]");
     WebConnector ! Message(activity.asInstanceOf[Activity], dataRequestErrorMessage + " : " + error, loaderShower)
     new Handler().postDelayed(new Runnable() {
       override def run() = {
@@ -200,6 +250,8 @@ object WebConnector extends Actor {
         case Show(activity, loaderShower) =>
 
           val dialog = dialogs.get(activity)
+          Log.d(TAG, "act dialog for activity[" + activity + "] is[" + dialog + "]");
+
           dialog match {
 
             case None =>
@@ -219,24 +271,43 @@ object WebConnector extends Actor {
 
         case Dismiss(activity, loaderShower) =>
 
-          val dialog = dialogs(activity)
-          dialog._2 match {
-            case 1 =>
-              runOnUi(activity, { () =>
-                dialog._1.hide()
-                decreaseDialog(activity)
-              })
-            case x =>
-              if (x > 1)
-                decreaseDialog(activity)
+          val dialog = dialogs.get(activity)
 
+          dialog match {
+            case None =>
+              Log.w(TAG, "act called dismiss from actvity without dilog registered[" + activity + "]");
+
+            case Some(dialog) =>
+
+              dialog._2 match {
+                case 1 =>
+                  runOnUi(activity, { () =>
+                    dialog._1.hide()
+                    decreaseDialog(activity)
+                  })
+                case x =>
+                  if (x > 1)
+                    decreaseDialog(activity)
+              }
           }
 
         case Message(activity, text, loaderShower) =>
-          runOnUi(activity, { () =>
-            Log.d(TAG, "act [change message to progress dialog]")
-            dialogs(activity)._1 setMessage text
-          })
+
+          val dialog = dialogs.get(activity)
+
+          dialog match {
+
+            case None =>
+              Log.w(TAG, "act called dismiss from actvity without dilog registered[" + activity + "]");
+
+            case Some(dialog) =>
+
+              runOnUi(activity, { () =>
+                Log.d(TAG, "act [change message to progress dialog]")
+                dialog._1 setMessage text
+              })
+
+          }
 
       }
 
