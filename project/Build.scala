@@ -9,7 +9,9 @@ object General {
     version := "0.1",
     versionCode := 0,
     scalaVersion := "2.9.2",
-    platformName in Android := "android-10"
+    platformName in Android := "android-10",
+    excludeFilter in unmanagedJars in (Compile,packageBin) := "maps.jar",
+    excludeFilter in unmanagedJars in (Compile,packageBin) ~= { _ || "usb.jar" }
     /*mappings in (Compile,packageBin) ~= { (ms: Seq[(File, String)]) =>
       ms filter { case (file, toPath) =>
         false//!toPath.contains("R.class")

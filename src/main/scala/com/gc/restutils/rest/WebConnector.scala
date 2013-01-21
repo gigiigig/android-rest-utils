@@ -466,7 +466,7 @@ object WebConnector extends Actor {
 
     val scpref = preferences.getAll() asScala
 
-    scpref foreach { item =>
+    scpref foreach { item: Tuple2[String,_] =>
       preferences.edit().remove(item._1)
     }
 

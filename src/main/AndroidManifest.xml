@@ -5,7 +5,7 @@
         android:label="App Rest Utils"
         android:debuggable="true">
 
-        <activity android:label="App Rest Utils" android:name=".MainActivity">
+        <activity android:label="App Rest Utils" android:name="com.gc.restutils.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
