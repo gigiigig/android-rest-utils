@@ -1,4 +1,4 @@
-package com.gc.restutils.rest
+package org.gg.android.restutils.rest
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream

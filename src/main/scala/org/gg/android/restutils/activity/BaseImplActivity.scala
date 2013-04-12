@@ -1,4 +1,4 @@
-package com.gc.restutils.activity
+package org.gg.android.restutils.activity
 
 import android.os.Bundle
 import android.app.Activity

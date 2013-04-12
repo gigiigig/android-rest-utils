@@ -1,4 +1,4 @@
-package com.gc.restutils.util
+package org.gg.android.restutils.util
 import android.util.TypedValue
 import android.content.Context
 import android.content.res.Resources

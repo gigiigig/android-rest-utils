@@ -1,11 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.gc.restutils">
+    package="org.gg.android.restutils">
 
     <application
         android:label="App Rest Utils"
         android:debuggable="true">
 
-        <activity android:label="App Rest Utils" android:name="com.gc.restutils.MainActivity">
+        <activity android:label="App Rest Utils" android:name="org.gg.android.restutils.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

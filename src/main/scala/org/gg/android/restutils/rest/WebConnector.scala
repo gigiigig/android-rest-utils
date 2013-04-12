@@ -1,10 +1,13 @@
-package com.gc.restutils.rest
+package org.gg.android.restutils.rest
 import java.io.FileNotFoundException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import org.gg.android.restutils.util.Utils;
+
 import scala.actors.Actor
 import scala.collection.JavaConverters._
 import android.app.Activity
@@ -24,7 +27,6 @@ import android.widget.ImageView.ScaleType
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import com.gc.restutils.util.Utils
 
 /*
  * Class for manage background donwload processes ,
@@ -80,7 +82,7 @@ abstract class WebConnector(
     this(activity, false, false, loaderShower)
   }
 
-  import WebConnector._
+import WebConnector._
 
   //WebConnector(activity.asInstanceOf[Activity])
 

@@ -1,4 +1,4 @@
-package com.gc.restutils.rest
+package org.gg.android.restutils.rest
 
 import java.net.URI
 import java.net.URLEncoder

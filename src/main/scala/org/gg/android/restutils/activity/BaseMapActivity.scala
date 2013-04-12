@@ -1,4 +1,4 @@
-package com.gc.restutils.activity
+package org.gg.android.restutils.activity
 
 import com.google.android.maps.MapActivity
 
