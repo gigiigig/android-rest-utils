@@ -52,8 +52,8 @@ a simpler constrctor, this is an example:
 
 `BitmapWebLoader` is easier to use 
     
-   String imageUrl = "YOUR IMAGE URL";
-   ImageView image = activity.findViewById(R.id.image_view_id);
+    String imageUrl = "YOUR IMAGE URL";
+    ImageView image = activity.findViewById(R.id.image_view_id);
 
     new BitmapWebLoader(activity, image, R.drawable.loader,
             R.drawable.not_image).loadImageFromWeb(imageUrl);
