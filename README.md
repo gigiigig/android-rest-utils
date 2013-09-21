@@ -15,8 +15,8 @@ The class to use for call REST services is `WebConnector`, and to start request 
 
 To create an ImageView which load an image from a remote url , use class `BitmapWebLoader` and call the method `loadImageFromWeb`
 
-`WebConnector` class have different constructors to fit different situations, best way to use is subclass and create
-a simpler constrctor, this is an example:
+`WebConnector` class have different constructors to fit different situations,
+the best way to use it is to extend it and create a simpler constrctor, this is an example:
 
     public class BaseWebloader extends WebConnector {
 
